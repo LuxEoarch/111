@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <title>舆情分析报告</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .meta {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .stats-box {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            background-color: #f9f9f9;
+            font-size: 14px;
+        }
+
+        .summary-box {
+            border-left: 5px solid #0076CE;
+            background-color: #F4F9FD;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .summary-box h3 {
+            margin-top: 0;
+            color: #0076CE;
+            font-size: 16px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #eee;
+            font-weight: bold;
+        }
+
+        .negative {
+            color: #D32F2F;
+            font-weight: bold;
+        }
+
+        .positive {
+            color: #388E3C;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>全网舆情监控智能分析快报</h1>
+    <div class="meta">
+        分析数据时段: <b style="color: #0076CE;">{{ stats.date_range }}</b><br><br>
+        报告核查生成时间: {{ stats.time }}
+    </div>
+
+    <div class="summary-box">
+        <h3>📄 AI 专家组诊断评估</h3>
+        <p>{{ stats.ai_summary }}</p>
+    </div>
+
+    <div class="stats-box">
+        <b>【指标汇总】</b> &nbsp;&nbsp;
+        本期抓取样本库容量: <b>{{ stats.total }}</b> 篇 &nbsp;&nbsp;|&nbsp;&nbsp;
+        高危(负面)预警事件: <span class="negative">{{ stats.neg }}</span> 例 &nbsp;&nbsp;|&nbsp;&nbsp;
+        舆论负向率: <b>{{ stats.ratio }}%</b>
+    </div>
+
+    <h3>最新舆情摘要 (Top 20)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th width="50%">标题/摘要</th>
+                <th width="15%">来源</th>
+                <th width="20%">时间</th>
+                <th width="15%">情感得分</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+            <tr>
+                <td>
+                    <div><b>{{ item.title }}</b></div>
+                    <div style="color:#666; font-size:10px; margin-top:4px;">{{ item.summary[:50] }}...</div>
+                </td>
+                <td>{{ item.source_platform }}</td>
+                <td>{{ item.publish_time }}</td>
+                <td>
+                    {% if item.sentiment_score <= 0.4 %} <span class="negative">{{ item.sentiment_score }}</span>
+                        {% elif item.sentiment_score >= 0.6 %}
+                        <span class="positive">{{ item.sentiment_score }}</span>
+                        {% else %}
+                        {{ item.sentiment_score }}
+                        {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="text-align: center; margin-top: 50px; font-size: 10px; color: #999;">
+        本报告由 全网舆情监控系统 自动生成
+    </div>
+</body>
+
+</html>

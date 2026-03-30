@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全量数据列表 - 舆情监控</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .sidebar {
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            position: fixed;
+            width: 250px;
+            padding-top: 20px;
+            z-index: 1000;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            margin: 5px 15px;
+            border-radius: 8px;
+        }
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="text-center mb-5">
+            <h4 class="fw-bold"><i class="fas fa-network-wired me-2"></i>舆情监控系统</h4>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="/"><i class="fas fa-chart-line me-2"></i>实时仪表盘</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/api/export/excel"><i class="fas fa-file-export me-2"></i>导出 Excel</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/data"><i class="fas fa-list me-2"></i>全量数据列表</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/report"><i class="fas fa-robot me-2"></i>智能分析报告</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>退出登录</a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold text-dark">全量数据列表</h4>
+                <div class="text-muted">共 {{ pagination.total }} 条记录</div>
+            </div>
+
+            <!-- Search -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <form action="/data" method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" name="keyword" class="form-control" placeholder="输入标题关键词..."
+                                value="{{ keyword }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100"><i
+                                    class="fas fa-search me-2"></i>搜索</button>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="/data" class="btn btn-outline-secondary w-100">重置</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;">ID</th>
+                                <th style="width: 40%;">标题 & 摘要</th>
+                                <th>来源</th>
+                                <th>发布时间</th>
+                                <th>情感分</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in pagination.items %}
+                            <tr>
+                                <td>{{ item.id }}</td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ item.title }}</div>
+                                    <small class="text-muted text-truncate d-block" style="max-width: 400px;">
+                                        {{ item.summary if item.summary else "暂无摘要" }}
+                                    </small>
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ item.source_platform }}</span></td>
+                                <td class="text-muted small">{{ item.publish_time }}</td>
+                                <td>
+                                    {% if item.sentiment_score >= 0.6 %}
+                                    <span class="text-success fw-bold">{{ item.sentiment_score|round(2) }}</span>
+                                    {% elif item.sentiment_score <= 0.4 %} <span class="text-danger fw-bold">{{
+                                        item.sentiment_score|round(2) }}</span>
+                                        {% else %}
+                                        <span class="text-secondary">{{ item.sentiment_score|round(2) }}</span>
+                                        {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        onclick="alert('TODO: 详情弹窗')">查看</button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">暂无数据</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="{{ url_for('data_list', page=pagination.prev_num, keyword=keyword) }}">上一页</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">上一页</span></li>
+                        {% endif %}
+
+                        <li class="page-item disabled"><span class="page-link">第 {{ pagination.page }} 页 / 共 {{
+                                pagination.pages }} 页</span></li>
+
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link"
+                                href="{{ url_for('data_list', page=pagination.next_num, keyword=keyword) }}">下一页</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">下一页</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>

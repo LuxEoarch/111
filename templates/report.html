@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能分析报告 - 舆情监控</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .sidebar {
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            position: fixed;
+            width: 250px;
+            padding-top: 20px;
+            z-index: 1000;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            margin: 5px 15px;
+            border-radius: 8px;
+        }
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .score-big {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="text-center mb-5">
+            <h4 class="fw-bold"><i class="fas fa-network-wired me-2"></i>舆情监控系统</h4>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="/"><i class="fas fa-chart-line me-2"></i>实时仪表盘</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/api/export/excel"><i class="fas fa-file-export me-2"></i>导出 Excel</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/data"><i class="fas fa-list me-2"></i>全量数据列表</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/report"><i class="fas fa-robot me-2"></i>智能分析报告</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>退出登录</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container-fluid">
+
+            <div class="report-card text-center position-relative">
+                <i class="fas fa-file-alt text-primary mb-3" style="font-size: 3rem;"></i>
+                <h2 class="fw-bold mb-3">舆情态势日报</h2>
+                <div class="d-flex justify-content-center gap-3 align-items-center mb-4">
+                    <span class="text-muted fw-bold">分析时间段：</span>
+                    <input type="date" id="report-start" class="form-control d-inline-block w-auto">
+                    <span class="text-muted">-</span>
+                    <input type="date" id="report-end" class="form-control d-inline-block w-auto">
+                    <button class="btn btn-primary px-4" onclick="loadReportData()"><i class="fas fa-sync-alt me-2"></i>生成报告</button>
+                    <button class="btn btn-danger px-4 ms-2" onclick="exportPDF()"><i class="fas fa-file-pdf me-2"></i>导出 PDF 公文</button>
+                </div>
+            </div>
+
+            <div class="report-card" style="background-color: #F4F9FD; border-left: 5px solid #0076CE;">
+                <h4 class="text-primary fw-bold mb-3"><i class="fas fa-robot me-2"></i>AI 专家组诊断评估</h4>
+                <div id="ai-summary-text" class="fs-5 text-dark" style="line-height: 1.8;">
+                    系统正在运用大模型深度解构舆情图谱...
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="report-card h-100">
+                        <h4 class="border-start border-4 border-primary ps-3 mb-4">整体情感倾向</h4>
+                        <div class="text-center py-4">
+                            <div class="score-big text-success" id="report-score">-</div>
+                            <p class="text-muted mt-2">平均情感指数 (0-1)</p>
+                            <div class="mt-4" id="report-sentiment-text">正在分析...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="report-card h-100">
+                        <h4 class="border-start border-4 border-danger ps-3 mb-4">主要风险点</h4>
+                        <div class="py-2">
+                            <ul class="list-group list-group-flush" id="risk-list">
+                                <li class="list-group-item text-center text-muted py-4">正在扫描负面关键词...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <h4 class="border-start border-4 border-warning ps-3 mb-4">热点话题摘要</h4>
+                <div id="topic-summary" class="line-height-lg text-secondary">
+                    正在进行 NLP 摘要提取...
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function loadReportData() {
+            const start = document.getElementById('report-start').value;
+            const end = document.getElementById('report-end').value;
+            
+            let url = '/api/stats';
+            if (start && end) {
+                url += `?start=${start}&end=${end}`;
+            }
+
+            fetch(url).then(res => res.json()).then(data => {
+                // 填充 AI 诊断长文
+                document.getElementById('ai-summary-text').innerText = data.ai_summary;
+
+                const score = data.avg_sentiment;
+                const scoreDiv = document.getElementById('report-score');
+                const textDiv = document.getElementById('report-sentiment-text');
+                scoreDiv.innerText = score;
+
+                if (score > 0.6) {
+                    scoreDiv.className = 'score-big text-success';
+                    textDiv.innerText = '当前规定周期内的网民核心诉求呈现 积极向上趋势，主情绪稳定。';
+                } else if (score < 0.4) {
+                    scoreDiv.className = 'score-big text-danger';
+                    textDiv.innerText = '规定周期类系统捕获到大量负面声量，请依据高危实体名单快速排查引导。';
+                } else {
+                    scoreDiv.className = 'score-big text-secondary';
+                    textDiv.innerText = '周期内大盘讨论热度处于多空僵持阶段，情绪面安全平稳。';
+                }
+
+                // 填充热点话题
+                const topicsDiv = document.getElementById('topic-summary');
+                if (data.top_keywords && data.top_keywords.length > 0) {
+                    topicsDiv.innerHTML = '此日期区间内的聚焦风暴核心包括：' +
+                        data.top_keywords.slice(0, 5).map(k => `<span class="fw-bold text-dark mx-1">${k.name}</span>`).join('、') +
+                        '。其中最高热搜讨论度为 “' + data.top_keywords[0].name + '”。';
+                } else {
+                    topicsDiv.innerHTML = '所选日期区间内无可供剖析的语义群落。';
+                }
+
+                // 模拟风险点 (取最新的负面新闻)
+                const riskList = document.getElementById('risk-list');
+                riskList.innerHTML = '';
+                const negNews = data.recent_list.filter(item => item.score < 0.4).slice(0, 3);
+                if (negNews.length > 0) {
+                    negNews.forEach(news => {
+                        riskList.innerHTML += `<li class="list-group-item"><i class="fas fa-exclamation-circle text-danger me-2"></i>${news.title}</li>`;
+                    });
+                } else {
+                    riskList.innerHTML = '<div class="text-center text-success py-4"><i class="fas fa-check-circle me-2"></i>区间探测安全：暂无明显高风险舆情爆破</div>';
+                }
+            });
+        }
+
+        function exportPDF() {
+            const start = document.getElementById('report-start').value;
+            const end = document.getElementById('report-end').value;
+            let url = '/api/export/pdf';
+            if (start && end) {
+                url += `?start=${start}&end=${end}`;
+            }
+            window.open(url, '_blank');
+        }
+
+        // 初始化：设置一个默认起止时间（比如最近 7 天）并挂载加载
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            document.getElementById('report-end').value = today.toISOString().split('T')[0];
+            document.getElementById('report-start').value = lastWeek.toISOString().split('T')[0];
+            loadReportData();
+        });
+    </script>
+</body>
+
+</html>
