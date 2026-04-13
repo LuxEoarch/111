@@ -1,7 +1,7 @@
 # app.py
 from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, send_file, make_response
 from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS, SECRET_KEY
-from models import db, User, MonitorTask, OpinionData
+from models import db, User, MonitorTask, OpinionData, AlertConfig
 from datetime import datetime, timedelta
 import collections
 from flask_apscheduler import APScheduler
@@ -238,6 +238,30 @@ def export_pdf():
         return jsonify({'error': str(e)}), 500
 
 # --- API 接口 (需登录) ---
+# --- [新增] 预警配置 API ---
+@app.route('/api/alert_config', methods=['GET', 'POST'])
+@login_required
+def alert_config():
+    conf = AlertConfig.query.first()
+    if not conf:
+        conf = AlertConfig()
+        db.session.add(conf)
+        db.session.commit()
+        
+    if request.method == 'POST':
+        data = request.json
+        if 'threshold' in data:
+            conf.threshold = float(data['threshold'])
+        if 'recipient_email' in data:
+            conf.recipient_email = data['recipient_email']
+        db.session.commit()
+        return jsonify({"status": "success", "msg": "预警系统配置已挂载生效"})
+        
+    return jsonify({
+        "threshold": conf.threshold,
+        "recipient_email": conf.recipient_email
+    })
+
 @app.route('/api/stats')
 @login_required
 def get_stats():

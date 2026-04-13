@@ -5,8 +5,9 @@ import random
 import time
 from datetime import datetime
 from app import app
-from models import db, OpinionData
+from models import db, OpinionData, AlertConfig
 import traceback
+import email_service
 import re
 import jieba.analyse
 import jieba.posseg as pseg
@@ -307,7 +308,20 @@ def parse_and_save(url, html):
             
             db.session.add(new_data)
             db.session.commit()
-            print(f"★ 成功入库: {title[:20]}... ({len(content)}字)")
+            print(f"★ 成功入库: {title[:20]}... (情感: {sentiment_score:.2f})")
+            
+            # --- [优化] 自动化告警守护进程介入 (满足论文预警逻辑) ---
+            alert_conf = AlertConfig.query.first()
+            if alert_conf and alert_conf.is_enabled and alert_conf.recipient_email:
+                if sentiment_score <= alert_conf.threshold:
+                    import threading
+                    # 采用异步子线程发射邮件，不阻塞爬虫主 IO 性能
+                    threading.Thread(
+                        target=email_service.send_alert_email, 
+                        args=(alert_conf.recipient_email, alert_conf.threshold, title, round(sentiment_score, 2), summary), 
+                        daemon=True
+                    ).start()
+                    
 
     except Exception as e:
         print(f"解析入库错误: {e}")

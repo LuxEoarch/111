@@ -131,6 +131,9 @@
                 <a class="nav-link" href="/report"><i class="fas fa-robot me-2"></i>智能分析报告</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="#" onclick="openAlertConfigModal()"><i class="fas fa-cog me-2"></i>监控全局配置</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>退出登录</a>
             </li>
         </ul>
@@ -139,6 +142,34 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="container-fluid">
+            <!-- 告警配置 Modal -->
+            <div class="modal fade" id="alertConfigModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>预警守护系统参数配置</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="alertConfigForm">
+                                <div class="mb-3">
+                                    <label class="form-label text-danger fw-bold">负面舆情触发阈值 (0 ~ 1)</label>
+                                    <input type="number" step="0.01" class="form-control" id="alert-threshold" value="0.3">
+                                    <div class="form-text">当情感得分低于该阈值时（越低越负面），触发紧急邮件告警。</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">高危情况通报接收邮箱</label>
+                                    <input type="email" class="form-control" id="alert-email" placeholder="输入接收警报的邮箱地址">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-danger" onclick="saveAlertConfig()"><i class="fas fa-save me-2"></i>生效守护策略</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- User Welcome -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="fw-bold text-dark">仪表盘概览</h4>
@@ -439,6 +470,34 @@
         }
 
         document.addEventListener('DOMContentLoaded', fetchData);
+        // --- 新增：加载和保存预警配置 ---
+        const alertModal = new bootstrap.Modal(document.getElementById('alertConfigModal'));
+        function openAlertConfigModal() {
+            fetch('/api/alert_config')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('alert-threshold').value = data.threshold;
+                    document.getElementById('alert-email').value = data.recipient_email;
+                    alertModal.show();
+                });
+        }
+
+        function saveAlertConfig() {
+            const data = {
+                threshold: document.getElementById('alert-threshold').value,
+                recipient_email: document.getElementById('alert-email').value
+            };
+            fetch('/api/alert_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                alertModal.hide();
+                alert('系统通报：' + res.msg);
+            });
+        }
     </script>
 </body>
 

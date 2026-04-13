@@ -41,3 +41,11 @@ class MonitorTask(db.Model):
     keyword = db.Column(db.String(50), nullable=False)  # 关键词
     platform = db.Column(db.String(20))  # 目标平台
     status = db.Column(db.Integer, default=1)  # 状态: 1启用, 0停止
+
+# 4. 全局告警配置表 (满足论文测试要求)
+class AlertConfig(db.Model):
+    __tablename__ = 'alert_config'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    threshold = db.Column(db.Float, default=0.3)  # 负面舆情告警阈值(0-1)
+    recipient_email = db.Column(db.String(100), default='yourname@qq.com')  # 接收邮箱
+    is_enabled = db.Column(db.Boolean, default=True)  # 是否开启邮件告警
